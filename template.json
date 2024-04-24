@@ -1,0 +1,16 @@
+Template for discord Webhook
+
+{
+    "content": "<@&%role_to_ping%>",
+    "embeds": [
+        {
+            "title": "**__%manga_title%__**",
+            "description": "**%chapter_index%** : %chapter_title%\n%chapter_link%",
+            "color": 8054015,
+            "image": {
+                "url": "%thumbnail_url%"
+            }
+        }
+    ],
+    "attachments": []
+}
