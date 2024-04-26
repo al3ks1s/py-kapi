@@ -359,6 +359,16 @@ class KAPIClient():
         return { "account_point": response["account_point"], 
                     "paid_point": response["paid_point"] }
 
+    def rent_episode(self, episode_id):
+
+        payload = {
+            "episode_id": str(episode_id),
+            "ticket_type": "1",
+            "ticket_version": "1"
+        }
+
+        return self.request("POST", "/episode/rental/ticket", payload)
+
     def finish_reading_episode(self, episode_id):
 
         payload = {
