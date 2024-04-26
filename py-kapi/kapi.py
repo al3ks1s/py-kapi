@@ -5,6 +5,7 @@ import json
 from Crypto.Hash import SHA256,SHA512
 
 
+
 __version__ = "0.1.0"
 
 # This fuction generates the x-kmanga-hash header which is 
@@ -111,13 +112,12 @@ class KAPIClient():
         if response.status_code == 200 and response.json()["status"] == "success":
 
             self.update_cookies(response.cookies.get_dict())
-            print(response.json())
             return response.json()
             
         else:
 
             print("Error : " + str(response.status_code))
-            print(response.json())
+            print(response.text)
 
         
     def login(self):
@@ -146,13 +146,19 @@ class KAPIClient():
         self.authenticated = False
         self.user_id = "0"
 
+        del self.cookies["uwt"]
+
     def get_title(self, title_id: int):
         
+        return self.get_titles([title_id])[0]
+
+        """
         payload = {
             "title_id_list": str(title_id)
         }
 
         return self.request("GET", "/title/list", payload)["title_list"][0]
+        """
 
     def get_titles(self, title_id_list: [int]):
         
@@ -162,13 +168,18 @@ class KAPIClient():
 
         return self.request("GET", "/title/list", payload)["title_list"]
 
+    # Specific error handling to add to following two funcs : invalid chapter ids will not raise errors from api (Code 200 and success in the json but no episode_list item)
     def get_chapter(self, episode_id: int):
 
+        return self.get_chapters([episode_id])[0]
+
+        """
         payload = {
             "episode_id_list": str(episode_id)
         }
 
         return self.request("POST", "/episode/list", payload)["episode_list"][0]
+        """
 
     def get_chapters(self, episode_id_list: [int]):
 
@@ -216,7 +227,7 @@ class KAPIClient():
 
         payload = {}
 
-        response = self.request("GET", "/account/points", payload)
+        response = self.request("GET", "/account/point", payload)
 
         return { "point": response["point"], "ticket": response["ticket"]}
 
@@ -226,7 +237,13 @@ class KAPIClient():
             "user_id": str(self.user_id)
         }
 
-        return self.request("GET", "/user", payload)["account"]
+        response = self.request("GET", "/user", payload)
+
+        del response["status"]
+        del response["response_code"]
+        del response["error_message"]
+
+        return response 
 
     def get_genre_list(self):
 
@@ -242,7 +259,8 @@ class KAPIClient():
 
         return self.request("GET", "/genre/list", payload)["genre_list"]
         
-    def get_rankings_all(self, ranking_id, offset = None, limit = None):
+    # Ranking id is one of the genres taken from the responses above
+    def get_rankings_all(self, ranking_id, offset = 0, limit = 0):
 
         payload = {
             "ranking_id": str(ranking_id)
@@ -273,7 +291,7 @@ class KAPIClient():
 
         return { "banner_list": response["banner_list"], "today_title_list": response["today_title_list"] }
 
-    def get_purchased(self, offset = None, limit = None):
+    def get_purchased(self, offset = 0, limit = 0):
 
         payload = {}
 
@@ -285,9 +303,15 @@ class KAPIClient():
 
         return self.request("GET", "/web/title/purchased", payload)["title_list"]
 
-    def get_title_ticket_list(self):
+    def get_title_ticket_list(self, title_id):
 
-        payload = {}
+        return self.get_title_ticket_list([title_id])[0]
+
+    def get_title_ticket_list(self, title_id_list):
+
+        payload = {
+            "title_id_list": ",".join(str(title_id) for title_id in title_id_list)
+        }
         
         return self.request("GET", "/title/ticket/list", payload)["title_ticket_list"]
 
@@ -297,14 +321,20 @@ class KAPIClient():
             "title_id": str(title_id)
         }
         
-        return self.request("GET", "/title/supplement", payload)
+
+        response =  self.request("GET", "/title/supplement", payload)
+
+        del response["status"]
+        del response["response_code"]
+        del response["error_message"]
+
+        return response
 
     def get_point_subscription(self):
         
         payload = {}
-    
 
-        response =  self.request("GET", "/shop/point/subscription")
+        response =  self.request("GET", "/shop/point/subscription", payload)
 
         return { "point_subscription_asset_list": response["point_subscription_asset_list"], 
                     "subscribed_category_list": response["subscribed_category_list"] 
@@ -349,6 +379,7 @@ class KAPIClient():
             "episode_id": str(episode_id)
         }
 
+        # Never seen any other response than []
         return self.request("GET", "/episode/viewer/lastpage", payload)["descriptor_id_list"]
 
     def app_boot(self):
