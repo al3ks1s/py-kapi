@@ -1,6 +1,7 @@
 class APIException(Exception):
     def __init__(self, response):
 
+
         response_content = response.json()
 
         self.status_code = response.status_code
@@ -16,7 +17,14 @@ class APIException(Exception):
 
 class BadRegion(APIException):
     def __init__(self, response):
-        super().__init__(response)
+        self.status_code = response.status_code
+        self.error_message = "IP Unauthorized, please use an IP from USA."
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} status_code={self.status_code}>"
+
+    def __str__(self):
+        return f"HTTP Status: {self.status_code} :: {self.error_message}"
 
 class InvalidParameter(APIException):
     def __init__(self, response):
