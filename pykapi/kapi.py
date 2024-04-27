@@ -50,7 +50,7 @@ def generate_xhash(params, birthday):
 
 class KAPIClient():
 
-    def __init__(self, username="", password="", apiHost="api.kmanga.kodansha.com"):
+    def __init__(self, username="", password="", proxy = None, apiHost="api.kmanga.kodansha.com"):
         
         self.version = "6.0.0"
         self.platform = "3"
@@ -78,6 +78,13 @@ class KAPIClient():
 
         self.user_id = "0"
 
+        self.proxies = {}
+
+        # I wouldn't send my creds through a proxy, so be careful with that
+        if proxies:
+            for proxy in proxies:
+                self.proxies[proxy] = proxies[proxy]
+
     def __enter__(self):
         self.login()
 
@@ -104,11 +111,11 @@ class KAPIClient():
         headers["x-kmanga-hash"] = generate_xhash(payload, self.cookies["birthday"])
 
         if method   == "GET":
-            response = requests.get(url, params=payload, headers=self.headers, cookies=self.cookies)
+            response = requests.get(url, params=payload, headers=self.headers, cookies=self.cookies, proxies=self.proxies)
         elif method == "POST":
-            response = requests.post(url, data=payload, headers=self.headers, cookies=self.cookies)
+            response = requests.post(url, data=payload, headers=self.headers, cookies=self.cookies, proxies=self.proxies)
 
-        
+
         if response.status_code == 200 and response.json()["status"] == "success":
 
             self.update_cookies(response.cookies.get_dict())
