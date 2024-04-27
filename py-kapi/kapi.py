@@ -4,7 +4,7 @@ import json
 
 from Crypto.Hash import SHA256,SHA512
 
-
+from errors import *
 
 __version__ = "0.1.0"
 
@@ -50,7 +50,7 @@ def generate_xhash(params, birthday):
 
 class KAPIClient():
 
-    def __init__(self, username=None, password=None, apiHost="api.kmanga.kodansha.com"):
+    def __init__(self, username="", password="", apiHost="api.kmanga.kodansha.com"):
         
         self.version = "6.0.0"
         self.platform = "3"
@@ -119,7 +119,43 @@ class KAPIClient():
             print("Error : " + str(response.status_code))
             print(response.text)
 
-        
+            if response.status_code == 403 and "ERROR: The request could not be satisfied" in response.text:
+                raise BadRegion(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 3103:
+                # Episode cannot be rented
+                raise InvalidParameter(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 3101:
+                # Episode cannot be bought
+                raise InvalidParameter(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 3102:
+                # Episode already bought or rentaled (sic)
+                raise InvalidParameter(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 3105:
+                raise NotPurchased(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 3104:
+                # Episode not found when asking /web/episode/viewer
+                raise NotFound(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 3100:
+                # Episode not found when asking /web/episode
+                raise NotFound(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 3000:
+                # Title not found
+                raise NotFound(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 1001:
+                raise InvalidParameter(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 1101:
+                # Web token invalid 
+                raise InvalidParameter(response)
+            elif response.status_code == 400 and response.json()["response_code"] == 2002:
+                raise LoginFailure(response)
+
+            # Error 500 usually means the request was malformed
+            elif response.status_code == 500 and response.json()["response_code"] == 1099:
+                raise BadRequest(response)
+
+            else:
+                raise APIException(response)
+
     def login(self):
 
         payload = {
@@ -140,13 +176,14 @@ class KAPIClient():
         payload = {
             "target_user_id": str(self.user_id)
         }
+        
+        if self.authenticated:
+            status = self.request("POST", "/web/user/logout", payload)
 
-        status = self.request("POST", "/web/user/logout", payload)
+            self.authenticated = False
+            self.user_id = "0"
 
-        self.authenticated = False
-        self.user_id = "0"
-
-        del self.cookies["uwt"]
+            del self.cookies["uwt"]
 
     def get_title(self, title_id: int):
         
@@ -168,7 +205,10 @@ class KAPIClient():
 
         return self.request("GET", "/title/list", payload)["title_list"]
 
-    # Specific error handling to add to following two funcs : invalid chapter ids will not raise errors from api (Code 200 and success in the json but no episode_list item)
+    # Specific error handling to add to following two funcs : 
+    # invalid chapter ids will not raise errors from api 
+    # Code 200 and success in the json but no episode_list item
+    # Also, invalid episode_ids will just not be included in the response
     def get_chapter(self, episode_id: int):
 
         return self.get_chapters([episode_id])[0]
@@ -187,7 +227,12 @@ class KAPIClient():
             "episode_id_list": ",".join(str(id) for id in episode_id_list)
         }
 
-        return self.request("POST", "/episode/list", payload)["episode_list"]
+        response = self.request("POST", "/episode/list", payload)
+
+        if "episode_list" not in response.keys():
+            raise InvalidParameter
+
+        return response["episode_list"]
 
     def get_episode(self, episode_id):
         
@@ -231,6 +276,7 @@ class KAPIClient():
 
         return { "point": response["point"], "ticket": response["ticket"]}
 
+    # Authentication required
     def get_user(self):
         
         payload = {
@@ -251,7 +297,11 @@ class KAPIClient():
 
         return self.request("GET", "/genre/search/list", payload)["genre_list"]
 
-    def get_genre_list_by_id(self, genre_id_list: [int]):
+    def get_genre_list_by_id(self, genre_id: int):
+
+        return self.get_genre_list_by_id([genre_id])[0]
+        
+    def get_genre_list_by_ids(self, genre_id_list: [int]):
 
         payload = {
             "genre_id_list": ",".join(str(id) for id in genre_id_list)
@@ -260,7 +310,7 @@ class KAPIClient():
         return self.request("GET", "/genre/list", payload)["genre_list"]
         
     # Ranking id is one of the genres taken from the responses above
-    def get_rankings_all(self, ranking_id, offset = 0, limit = 0):
+    def get_ranking_all(self, ranking_id, offset = 0, limit = 0):
 
         payload = {
             "ranking_id": str(ranking_id)
@@ -303,7 +353,7 @@ class KAPIClient():
 
         return self.request("GET", "/web/title/purchased", payload)["title_list"]
 
-    def get_title_ticket_list(self, title_id):
+    def get_title_ticket(self, title_id):
 
         return self.get_title_ticket_list([title_id])[0]
 
@@ -352,7 +402,7 @@ class KAPIClient():
             "episode_id": str(episode_id)
         }
 
-        payload["check_point"] = self.get_chapter(episode_id)["point"]
+        payload["check_point"] = str(self.get_chapter(episode_id)["point"])
 
         response = self.request("POST", "/episode/paid", payload)
 
@@ -406,7 +456,7 @@ class KAPIClient():
 
 
 """
-Endpoint yet to implement, most of them would be useless in your projects:
+Endpoint yet to implement:
 https://api.kmanga.kodansha.com/advertisement/view
 
 There are probably other endpoints i haven't discovered yet, if you found one missing, open an issue or a PR for it to be included
