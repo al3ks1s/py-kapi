@@ -50,7 +50,7 @@ def generate_xhash(params, birthday):
 
 class KAPIClient():
 
-    def __init__(self, username="", password="", proxy = None, apiHost="api.kmanga.kodansha.com"):
+    def __init__(self, username="", password="", proxies = None, apiHost="api.kmanga.kodansha.com"):
         
         self.version = "6.0.0"
         self.platform = "3"

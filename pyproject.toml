@@ -4,7 +4,7 @@ build-backend   = "setuptools.build_meta"
 
 [project]
 name    = "py-kapi"
-version = "0.1.0"
+version = "0.1.1"
 description = "Kmanga api wrapper"
 readme = "README.md"
 authors = [{ name = "al3ks1s", email = "al3ks1sss@gmail.com" }]
