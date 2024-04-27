@@ -4,7 +4,7 @@ import json
 
 from Crypto.Hash import SHA256,SHA512
 
-from errors import *
+from .errors import *
 
 __version__ = "0.1.0"
 
@@ -116,36 +116,43 @@ class KAPIClient():
             
         else:
 
-            print("Error : " + str(response.status_code))
-            print(response.text)
-
             if response.status_code == 403 and "ERROR: The request could not be satisfied" in response.text:
                 raise BadRegion(response)
+            
             elif response.status_code == 400 and response.json()["response_code"] == 3103:
                 # Episode cannot be rented
                 raise InvalidParameter(response)
+
             elif response.status_code == 400 and response.json()["response_code"] == 3101:
                 # Episode cannot be bought
                 raise InvalidParameter(response)
+            
             elif response.status_code == 400 and response.json()["response_code"] == 3102:
                 # Episode already bought or rentaled (sic)
                 raise InvalidParameter(response)
+            
             elif response.status_code == 400 and response.json()["response_code"] == 3105:
                 raise NotPurchased(response)
+            
             elif response.status_code == 400 and response.json()["response_code"] == 3104:
                 # Episode not found when asking /web/episode/viewer
                 raise NotFound(response)
+            
             elif response.status_code == 400 and response.json()["response_code"] == 3100:
                 # Episode not found when asking /web/episode
                 raise NotFound(response)
+            
             elif response.status_code == 400 and response.json()["response_code"] == 3000:
                 # Title not found
                 raise NotFound(response)
+            
             elif response.status_code == 400 and response.json()["response_code"] == 1001:
                 raise InvalidParameter(response)
+            
             elif response.status_code == 400 and response.json()["response_code"] == 1101:
                 # Web token invalid 
                 raise InvalidParameter(response)
+            
             elif response.status_code == 400 and response.json()["response_code"] == 2002:
                 raise LoginFailure(response)
 
