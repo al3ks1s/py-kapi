@@ -12,7 +12,7 @@ class APIException(Exception):
         return f"<{self.__class__.__name__} status_code={self.status_code} response_code={self.response_code}>"
 
     def __str__(self):
-        return f"{self.error_time} : HTTP Status : {self.status_code} response code : {self.response_code} :: {self.error_message}"
+        return f"HTTP Status: {self.status_code}, response code: {self.response_code} :: {self.error_message}"
 
 class BadRegion(APIException):
     def __init__(self, response):
